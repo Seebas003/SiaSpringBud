@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Aprendiz SENA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body {margin:0; font-family:'Poppins', sans-serif; background-color:#fff; color:#006B2D; display:flex;}
+    .sidebar{width:250px; background:#006B2D; padding:20px; height:100vh; position:fixed; top:0; left:0; display:flex; flex-direction:column; gap:15px; box-shadow:2px 0 10px rgba(0,107,45,0.2);}
+    .sidebar a{color:#fff; text-decoration:none; font-weight:600; display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; transition:background 0.3s;}
+    .sidebar a:hover{background:#008D4D; color:#fff;}
+    .sidebar a.active{background:#014F27; box-shadow: inset 2px 0 0 #a3d9a5;}
+    .content{margin-left:270px; padding:30px; flex-grow:1; background:#fff;}
+    .dashboard-header{text-align:center; margin-bottom:30px; color:#006B2D;}
+    .cards{display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:20px;}
+    .card{background:#F0FFF0; padding:20px; border-radius:10px; text-align:center; box-shadow:0 0 15px rgba(0,107,45,0.1); transition:transform 0.3s; cursor:pointer; color:#000; border:1px solid #98FB98;}
+    .card:hover{transform:translateY(-5px); box-shadow:0 5px 15px rgba(0,107,45,0.15); border:1px solid #006B2D;}
+    .card i{font-size:40px; color:#050505; margin-bottom:15px;}
+    .section{display:none; margin-top:20px; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 15px rgba(0,107,45,0.1); color:#121312;}
+    table{width:100%; border-collapse:collapse; margin-top:20px;}
+    th,td{border:1px solid #98FB98; padding:10px; text-align:center; color:#020202;}
+    th{background:#F0FFF0; color:#0c0c0c;}
+    button{background:#43d828; color:#000; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold; margin:5px; transition:all 0.3s;}
+    button:hover{transform:scale(1.05); box-shadow:0 0 10px rgba(57,255,20,0.5);}
+    button.delete{background:#FF8C00; color:white;}
+    input,select,textarea{width:100%; padding:10px; margin:8px 0; background:#F0FFF0; color:#000; border:1px solid #98FB98; border-radius:5px;}
+    .file-upload{border:2px dashed #006B2D; padding:20px; text-align:center; border-radius:5px; margin:15px 0; color:#0f0f0f;}
+    .doc-list{background:#F0FFF0; padding:15px; border-radius:5px; margin:10px 0; color:#0a0a0a; border:1px solid #98FB98;}
+    .status{font-weight:bold;}
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <!-- las llamadas inline usan showSection(event,'id') para evitar navegación -->
+    <a href="#" onclick="showSection(event,'horario')"><i class="fas fa-calendar-alt"></i> Mi Horario</a>
+    <a href="#" onclick="showSection(event,'perfil')"><i class="fas fa-user-edit"></i> Mi Perfil</a>
+    <a href="#" onclick="showSection(event,'equipos')"><i class="fas fa-laptop"></i> Equipos</a>
+    <a href="#" onclick="showSection(event,'certificado')"><i class="fas fa-file-alt"></i> Certificado</a>
+    <a href="#" onclick="showSection(event,'incapacidades')"><i class="fas fa-file-medical"></i> Incapacidades</a>
+    <a href="#" onclick="showSection(event,'trabajos')"><i class="fas fa-tasks"></i> Mis Trabajos</a>
+    <!-- logout mantén th:href si usas Spring Security -->
+    <a th:href="@{/login}"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+  </div>
+
+  <div class="content">
+    <div class="dashboard-header">
+      <h1>Panel del Aprendiz SENA</h1>
+      <p>Bienvenido a tu espacio de formación</p>
+    </div>
+
+    <!-- === CARDS === -->
+    <section class="cards">
+      <div class="card" onclick="showSection('horario')">
+        <i class="fas fa-calendar-alt"></i>
+        <h3>Mi Horario</h3>
+        <p>Consulta tus clases y actividades</p>
+      </div>
+      <div class="card" onclick="showSection('certificado')">
+        <i class="fas fa-file-alt"></i>
+        <h3>Certificado</h3>
+        <p>Descarga tu certificado</p>
+      </div>
+      <div class="card" onclick="showSection('trabajos')">
+        <i class="fas fa-tasks"></i>
+        <h3>Mis Trabajos</h3>
+        <p>Revisa tus entregas</p>
+      </div>
+    </section>
+
+    <!-- === HORARIO === -->
+    <section id="horario" class="section" style="display:block;">
+      <h2><i class="fas fa-calendar-alt"></i> Mi Horario Semanal</h2>
+      <form th:action="@{/horario/importar}" method="post" enctype="multipart/form-data" style="margin-bottom:20px;">
+        <input type="file" name="archivo_excel" accept=".xlsx,.xls" required>
+        <button type="submit"><i class="fas fa-upload"></i> Cargar Programación</button>
+      </form>
+
+      <div th:if="${success}" style="background-color:#d4edda; padding:10px; border-left:5px solid #28a745;">
+        <span th:text="${success}"></span>
+      </div>
+      <div th:if="${error}" style="background-color:#f8d7da; padding:10px; border-left:5px solid #dc3545;">
+        <span th:text="${error}"></span>
+      </div>
+
+      <div th:if="${horario != null}">
+        <table>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Lunes</th>
+              <th>Martes</th>
+              <th>Miércoles</th>
+              <th>Jueves</th>
+              <th>Viernes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="fila : ${horario}">
+              <td th:text="${fila.hora}"></td>
+              <td th:text="${fila.lunes}"></td>
+              <td th:text="${fila.martes}"></td>
+              <td th:text="${fila.miercoles}"></td>
+              <td th:text="${fila.jueves}"></td>
+              <td th:text="${fila.viernes}"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p th:if="${horario == null}" style="color:#666;">📂 Aún no se ha cargado programación para tu ficha.</p>
+    </section>
+
+    <!-- === PERFIL === -->
+    <section id="perfil" class="section">
+      <h2><i class="fas fa-user-edit"></i> Perfil del Aprendiz</h2>
+      <div th:if="${aprendiz_completo}">
+        <div class="card" style="text-align:left; max-width:600px; margin:0 auto;">
+          <h3 style="color:#006B2D"><i class="fas fa-id-badge"></i> Información Personal</h3>
+          <p><strong>Nombres:</strong> <span th:text="${usuario.nombres}"></span></p>
+          <p><strong>Apellidos:</strong> <span th:text="${usuario.apellidos}"></span></p>
+          <p><strong>Correo:</strong> <span th:text="${usuario.correo}"></span></p>
+          <p><strong>Número de Documento:</strong> <span th:text="${usuario.noDocumento}"></span></p>
+          <p><strong>Ficha de Formación:</strong> <span th:text="${aprendiz.fichaFormacion}"></span></p>
+          <p><strong>Programa de Formación:</strong> <span th:text="${aprendiz.programaFormacion}"></span></p>
+          <a href="/aprendiz/formulario">
+            <button style="margin-top:15px; background:#006B2D; color:white; border:none; border-radius:5px; padding:8px 18px; font-weight:bold; cursor:pointer;">
+              <i class="fas fa-edit"></i> Editar Información
+            </button>
+          </a>
+        </div>
+      </div>
+      <div th:if="${!aprendiz_completo}">
+        <p style="color:#ADFF2F;">⚠ Aún no has completado tu perfil de aprendiz.</p>
+        <a th:href="@{/aprendiz/formulario}">
+          <button><i class="fas fa-user-plus"></i> Completar Información del Aprendiz</button>
+        </a>
+      </div>
+    </section>
+
+    <!-- === EQUIPOS === -->
+    <section id="equipos" class="section">
+      <h2><i class="fas fa-laptop"></i> Registro de Equipos</h2>
+      <a th:href="@{/equipos}">
+        <button type="button"><i class="fas fa-plus-circle"></i> Registrar Nuevo Equipo</button>
+      </a>
+
+      <h2><i class="fas fa-table"></i> Lista de Equipos Registrados</h2>
+      <div th:if="${mensaje}" style="background-color:#d4edda; color:#155724; padding:10px; border-radius:5px; margin-bottom:10px;">
+        <i class="fas fa-check-circle"></i> <span th:text="${mensaje}"></span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Marca/Modelo</th>
+            <th>Serie</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="equipo : ${equipos}" th:if="${equipo.estado == 1}">
+            <td th:text="${equipo.tipoEquipo}"></td>
+            <td th:text="${equipo.marcaModelo}"></td>
+            <td th:text="${equipo.numeroSerie}"></td>
+            <td th:text="${equipo.estado == 1 ? 'Activo' : 'Inactivo'}"></td>
+            <td>
+              <button type="button" style="background:#007bff; color:white; border:none; border-radius:5px; padding:5px 10px; cursor:pointer; margin-right:5px;"
+                th:attr="onclick='editarEquipo(' + ${equipo.idEquipo} + ')'">
+                <i class="fas fa-edit"></i> Editar
+              </button>
+              <button type="button" style="background:#FF8C00; color:white; border:none; border-radius:5px; padding:5px 10px; cursor:pointer;"
+                th:attr="onclick='eliminarEquipoAjax(' + ${equipo.idEquipo} + ')'">
+                <i class="fas fa-trash"></i> Eliminar
+              </button>
+            </td>
+<script>
+function editarEquipo(idEquipo) {
+  // Redirige a la página de edición del equipo
+  window.location.href = '/equipos/editar/' + idEquipo;
+}
+function eliminarEquipoAjax(idEquipo) {
+  if (!confirm('¿Seguro que deseas eliminar este equipo?')) return;
+  fetch(`/equipos/desactivar/${idEquipo}`, { method: 'POST' })
+    .then(res => {
+      if (!res.ok) throw new Error('Error al eliminar equipo');
+      // Eliminar la fila de la tabla
+      const fila = document.querySelector(`button[onclick*='${idEquipo}']`).closest('tr');
+      if (fila) fila.remove();
+      // Mostrar mensaje de éxito
+      mostrarMensaje('El equipo se ha eliminado correctamente.');
+    })
+    .catch(() => mostrarMensaje('No se pudo eliminar el equipo.'));
+}
+function mostrarMensaje(msg) {
+  let div = document.getElementById('mensajeExito');
+  if (!div) {
+    div = document.createElement('div');
+    div.id = 'mensajeExito';
+    div.style.backgroundColor = '#d4edda';
+    div.style.color = '#155724';
+    div.style.padding = '10px';
+    div.style.borderRadius = '5px';
+    div.style.marginBottom = '10px';
+    div.innerHTML = `<i class='fas fa-check-circle'></i> <span></span>`;
+    const tabla = document.querySelector('#equipos table');
+    tabla.parentNode.insertBefore(div, tabla);
+  }
+  div.querySelector('span').textContent = msg;
+  div.style.display = 'block';
+  setTimeout(() => { div.style.display = 'none'; }, 2500);
+}
+</script>
+          </tr>
+          <tr th:if="${equipos == null or #lists.isEmpty(equipos)}">
+            <td colspan="5" style="text-align:center; color:#888;">No hay equipos registrados.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- === CERTIFICADO === -->
+    <section id="certificado" class="section">
+      <h2><i class="fas fa-file-alt"></i> Certificado Estudiantil</h2>
+      <div class="doc-list">
+        <h3>Certificado disponible para descarga:</h3>
+        <p><i class="fas fa-file-pdf"></i> Certificado_Formacion_2024.pdf</p>
+        <button onclick="descargarCertificado()"><i class="fas fa-download"></i> Descargar Certificado</button>
+      </div>
+    </section>
+
+    <!-- === INCAPACIDADES === -->
+    <section id="incapacidades" class="section">
+      <h2><i class="fas fa-file-medical"></i> Gestión de Incapacidades</h2>
+      <div class="file-upload">
+        <h3><i class="fas fa-cloud-upload-alt"></i> Subir Nueva Incapacidad</h3>
+        <input type="file" id="incapacidadFile" accept=".pdf,.jpg,.png">
+        <label>Fecha de incapacidad:</label>
+        <input type="date" id="fechaIncapacidad">
+        <button onclick="subirIncapacidad()"><i class="fas fa-upload"></i> Subir Documento</button>
+      </div>
+      <h3>Historial de Incapacidades:</h3>
+      <div class="doc-list">
+        <p><i class="fas fa-file-pdf"></i> Incapacidad_2024-03-15.pdf <span class="status" style="color:#158601">Aprobada</span></p>
+        <p><i class="fas fa-file-image"></i> Incapacidad_2024-02-10.jpg <span class="status" style="color:#ffee00">En revisión</span></p>
+      </div>
+    </section>
+
+    <!-- === TRABAJOS === -->
+    <section id="trabajos" class="section">
+      <h2><i class="fas fa-tasks"></i> Mis Trabajos Entregados</h2>
+      <table>
+        <tr>
+          <th>Actividad</th>
+          <th>Fecha Entrega</th>
+          <th>Archivo</th>
+          <th>Estado</th>
+          <th>Calificación</th>
+        </tr>
+        <tr>
+          <td>Proyecto Base de Datos</td>
+          <td>15/03/2024</td>
+          <td><i class="fas fa-file-code"></i> proyecto_bd.zip</td>
+          <td><span style="color:#169400">Aprobado</span></td>
+          <td>4.8/5.0</td>
+        </tr>
+        <tr>
+          <td>Informe de Matemáticas</td>
+          <td>28/02/2024</td>
+          <td><i class="fas fa-file-word"></i> informe_matematicas.docx</td>
+          <td><span style="color:#ffd104">En revisión</span></td>
+          <td>-</td>
+        </tr>
+      </table>
+
+      <div class="file-upload" style="margin-top:30px;">
+        <h3><i class="fas fa-cloud-upload-alt"></i> Entregar Nuevo Trabajo</h3>
+        <label>Seleccionar actividad:</label>
+        <select id="actividadSelect">
+          <option>Proyecto Final Programación</option>
+          <option>Taller de Inglés</option>
+        </select>
+        <input type="file" id="trabajoFile">
+        <button onclick="entregarTrabajo()"><i class="fas fa-paper-plane"></i> Enviar Trabajo</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // showSection flexible: puede llamarse showSection('id') o showSection(event,'id')
+    function showSection(eOrId, maybeId) {
+      let id;
+      if (typeof eOrId === 'string') {
+        id = eOrId;
+      } else {
+        // eOrId es el evento
+        if (eOrId && typeof eOrId.preventDefault === 'function') eOrId.preventDefault();
+        id = maybeId;
+      }
+      if (!id) return;
+
+      // ocultar todas las secciones y mostrar la solicitada
+      document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'block';
+
+      // actualizar estado "activo" del sidebar
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      // buscar anchor cuyo onclick contenga el id o tenga data-target
+      const anchors = Array.from(document.querySelectorAll('.sidebar a'));
+      const activeLink = anchors.find(a => {
+        const onclick = a.getAttribute('onclick') || '';
+        if (onclick.includes(`'${id}'`) || onclick.includes(`"${id}"`)) return true;
+        const dt = a.dataset.target;
+        if (dt === id) return true;
+        return false;
+      });
+      if (activeLink) activeLink.classList.add('active');
+
+      // si la sección es equipos, solicitar datos al backend
+      if (id === 'equipos') cargarEquipos();
+    }
+
+    function descargarCertificado(){
+      alert("Descargando certificado... (simulación)");
+    }
+
+    function subirIncapacidad(){
+      const f = document.getElementById('incapacidadFile').files[0];
+      if (f) {
+        alert(`Incapacidad "${f.name}" subida.`);
+        // aqui iría el POST real a tu endpoint
+      } else {
+        alert("Selecciona un archivo");
+      }
+    }
+
+    function entregarTrabajo(){
+      const f = document.getElementById('trabajoFile').files[0];
+      const actividad = document.getElementById('actividadSelect').value;
+      if (f) {
+        alert(`Trabajo "${f.name}" entregado para "${actividad}".`);
+        // aqui iría el POST real a tu endpoint
+      } else {
+        alert("Selecciona un archivo");
+      }
+    }
+
+    function cargarEquipos() {
+      // ejemplo: si tu endpoint existe en el backend este fetch traerá la lista
+      fetch("/equipos/listar")
+        .then(res => {
+          if (!res.ok) throw new Error("No se pudo obtener equipos");
+          return res.json();
+        })
+        .then(data => {
+          const tbody = document.querySelector("#tablaEquipos tbody");
+          tbody.innerHTML = "";
+          data.forEach(equipo => {
+            const fila = `
+              <tr>
+                <td>${equipo.tipo_equipo}</td>
+                <td>${equipo.marca_modelo}</td>
+                <td>${equipo.numero_serie}</td>
+                <td>${equipo.estado == 1 ? 'Activo' : 'Inactivo'}</td>
+                <td><button class="btn-delete" onclick="eliminarEquipo(${equipo.id_equipo})">Eliminar</button></td>
+              </tr>`;
+            tbody.innerHTML += fila;
+          });
+        })
+        .catch(err => {
+          console.warn("No se pudieron cargar equipos:", err);
+        });
+    }
+
+    function eliminarEquipo(id){
+      Swal.fire({
+        title:'¿Eliminar equipo?',
+        text:"Esta acción no se puede deshacer.",
+        icon:'warning',
+        showCancelButton:true,
+        confirmButtonColor:'#d33',
+        cancelButtonColor:'#3085d6',
+        confirmButtonText:'Sí, eliminar',
+        cancelButtonText:'Cancelar'
+      }).then((r)=>{
+        if (r.isConfirmed) {
+          fetch(`/equipos/eliminar/${id}`, { method:'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                Swal.fire('¡Eliminado!','El equipo ha sido eliminado.','success');
+                cargarEquipos();
+              } else {
+                Swal.fire('Error','No se pudo eliminar el equipo.','error');
+              }
+            })
+            .catch(err => Swal.fire('Error','Hubo un problema en el servidor.','error'));
+        }
+      });
+    }
+
+    // marcar por defecto la sección inicial
+    (function init() {
+      // si quieres que otra sección arranque visible, cambia 'horario'
+      showSection('horario');
+    })();
+  </script>
+</body>
+</html>
